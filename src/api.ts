@@ -2,7 +2,7 @@ import axios from 'axios';
 import { secureStorage } from './utils/secureStorage';
 
 const api = axios.create({
-  baseURL: 'http://172.174.246.240:25255/api',  // ✅ hardcoded, no env needed
+  baseURL: 'https://api.zyphra.site/api',  // ✅ free HTTPS via Cloudflare
 });
 
 api.interceptors.request.use((config) => {
