@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Proxy API requests to your Python backend IP/Port
+  # This fixes the Mixed Content error by letting Apache do the HTTP request behind the scenes!
+  RewriteRule ^api/(.*)$ http://172.174.246.240:25255/api/$1 [P,L]
+
+  # 2. React Router Catch-All (Allows /dashboard URLs avoiding 404s)
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>
