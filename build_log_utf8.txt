@@ -1,0 +1,27 @@
+﻿
+> client@0.1.0 build
+> react-scripts build
+
+Creating an optimized production build...
+Failed to compile.
+
+TS2322: Type '{ hidden: { opacity: number; y: number; filter: string; }; visible: { opacity: number; y: number; filter: string; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'visible' is incompatible with index signature.
+    Type '{ opacity: number; y: number; filter: string; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; filter: string; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; filter: string; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+  [0m [90m 241 |[39m     [33m<[39m[33mmotion[39m[33m.[39mdiv
+   [90m 242 |[39m       ref[33m=[39m{cardRef}
+  [31m[1m>[22m[39m[90m 243 |[39m       variants[33m=[39m{fadeSlideUp}
+   [90m     |[39m       [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 244 |[39m       onMouseMove[33m=[39m{handleMouseMove}
+   [90m 245 |[39m       whileHover[33m=[39m{{ y[33m:[39m [33m-[39m[35m4[39m[33m,[39m transition[33m:[39m { type[33m:[39m [32m'spring'[39m[33m,[39m stiffness[33m:[39m [35m300[39m } }}
+   [90m 246 |[39m       className[33m=[39m[32m"group bg-[#0d1225]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl overflow-hidden relative hover:border-white/[0.12] transition-colors"[39m[0m
+
+
