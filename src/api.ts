@@ -2,7 +2,7 @@ import axios from 'axios';
 import { secureStorage } from './utils/secureStorage';
 
 const api = axios.create({
-  baseURL: process.env.NODE_ENV === 'development' ? 'http://172.174.246.240:25255/api' : '/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://172.174.246.240:25255/api',
 });
 
 api.interceptors.request.use((config) => {
@@ -14,3 +14,8 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+```
+
+**3. Also add to Vercel dashboard** → Settings → Environment Variables:
+```
+REACT_APP_API_URL = http://172.174.246.240:25255/api
