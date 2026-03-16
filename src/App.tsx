@@ -72,6 +72,14 @@ const App: React.FC = () => {
           <Route path="/dashboard/logging" element={<LoggingPage />} />
           <Route path="/dashboard/audit-logs" element={<AuditLogsPage />} />
 
+          {/* Admin Area */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/guilds" element={<AdminGuilds />} />
+          <Route path="/admin/premium" element={<AdminPremium />} />
+          <Route path="/admin/blacklist" element={<AdminBlacklist />} />
+          <Route path="/admin/users" element={<AdminUserLookup />} />
+          <Route path="/admin/bot-settings" element={<AdminBotSettings />} />
+          
           {/* Legacy routes */}
           <Route path="/protection" element={<ProtectionPage />} />
           <Route path="/settings" element={<SettingsPageLegacy />} />
