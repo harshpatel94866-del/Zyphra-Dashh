@@ -34,6 +34,16 @@ import TicketsPage from './pages/dashboard/TicketsPage';
 import LoggingPage from './pages/dashboard/LoggingPage';
 import AuditLogsPage from './pages/dashboard/AuditLogsPage';
 
+
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminGuilds from './pages/admin/AdminGuilds';
+import AdminPremium from './pages/admin/AdminPremium';
+import AdminBlacklist from './pages/admin/AdminBlacklist';
+import AdminUserLookup from './pages/admin/AdminUserLookup';
+import AdminBotSettings from './pages/admin/AdminBotSettings';
+
+
 const App: React.FC = () => {
   return (
     <ThemeProvider>
