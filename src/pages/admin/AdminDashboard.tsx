@@ -32,15 +32,29 @@ interface AdminStats {
 const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
     const [syncMsg, setSyncMsg] = useState('');
 
     const fetchStats = async () => {
+        setLoading(true);
+        setError(null);
         try {
             const res = await api.get('/admin/stats');
             setStats(res.data);
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            const status = err?.response?.status;
+            const detail = err?.response?.data?.detail || err?.message || 'Unknown error';
+            if (status === 401) {
+                setError(`Authentication failed (401): ${detail}\n\nYour Discord token may be expired. Please log out and log in again via /dashboard/login.`);
+            } else if (status === 403) {
+                setError(`Access denied (403): ${detail}\n\nOnly the bot owner can access this page.`);
+            } else if (status === 500) {
+                setError(`Server error (500): ${detail}\n\nThe bot API crashed. Check your bot server terminal for [ADMIN STATS ERROR] or [ADMIN AUTH ERROR] logs.`);
+            } else {
+                setError(`Failed to load stats: ${detail}`);
+            }
+            console.error('[AdminDashboard]', status, detail);
         } finally {
             setLoading(false);
         }
@@ -75,6 +89,28 @@ const AdminDashboard: React.FC = () => {
             <AdminLayout>
                 <div className="flex items-center justify-center py-24">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-500 opacity-50" />
+                </div>
+            </AdminLayout>
+        );
+    }
+
+    if (error) {
+        return (
+            <AdminLayout>
+                <div className="flex items-center justify-center py-16">
+                    <div className="max-w-lg w-full bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <span className="text-3xl">⚠️</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-red-400 mb-3">Admin Dashboard Error</h2>
+                        <pre className="text-sm text-red-300/80 whitespace-pre-wrap text-left bg-black/20 rounded-lg p-4 mb-6">{error}</pre>
+                        <button
+                            onClick={fetchStats}
+                            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold flex items-center gap-2 mx-auto transition-colors"
+                        >
+                            <RefreshCw className="w-4 h-4" /> Retry
+                        </button>
+                    </div>
                 </div>
             </AdminLayout>
         );
