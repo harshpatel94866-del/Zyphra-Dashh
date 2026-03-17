@@ -8,6 +8,11 @@ interface AdminLayoutProps {
     children: React.ReactNode;
 }
 
+// All owner IDs from utils/config.py (OWNER_IDS + CO_OWNER_IDS)
+const ADMIN_IDS = [
+    '1070619070468214824',
+];
+
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -23,7 +28,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         try {
             const user = JSON.parse(userStr);
-            if (!user.is_owner && user.id !== '1070619070468214824') {
+            if (!user.is_owner && !ADMIN_IDS.includes(user.id)) {
                 navigate('/dashboard/servers');
             } else {
                 setIsOwner(true);
