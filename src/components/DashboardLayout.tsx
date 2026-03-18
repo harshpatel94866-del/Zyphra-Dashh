@@ -33,6 +33,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Check if user is logged in first
+        const token = secureStorage.getItem('discord_token');
+        const userStr = secureStorage.getItem('discord_user') || secureStorage.getItem('user');
+        if (!token || !userStr) {
+            navigate('/dashboard/login');
+            return;
+        }
+
+        try {
+            setUser(JSON.parse(userStr));
+        } catch { }
+
         const guildStr = secureStorage.getItem('selected_guild');
         if (!guildStr) {
             navigate('/dashboard/servers');
@@ -44,13 +56,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         } catch {
             navigate('/dashboard/servers');
             return;
-        }
-
-        const userStr = secureStorage.getItem('discord_user') || secureStorage.getItem('user');
-        if (userStr) {
-            try {
-                setUser(JSON.parse(userStr));
-            } catch { }
         }
 
         setLoading(false);
