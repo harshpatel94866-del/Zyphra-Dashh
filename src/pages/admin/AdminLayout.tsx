@@ -10,7 +10,10 @@ interface AdminLayoutProps {
 
 // All owner IDs from utils/config.py (OWNER_IDS + CO_OWNER_IDS)
 const ADMIN_IDS = [
-    '1070619070468214824',
+    '1056986380032548976',
+    '1265957401119690753',
+    '1356306298731233360',
+    '1084023378991665163',
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
@@ -28,7 +31,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         try {
             const user = JSON.parse(userStr);
-            if (!user.is_owner && !ADMIN_IDS.includes(user.id)) {
+            const userId = String(user.id);
+            const isAdmin = user.is_owner || ADMIN_IDS.includes(userId);
+            console.log('[AdminLayout] user.id:', userId, 'is_owner:', user.is_owner, 'isAdmin:', isAdmin);
+            if (!isAdmin) {
                 navigate('/dashboard/servers');
             } else {
                 setIsOwner(true);
