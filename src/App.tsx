@@ -15,6 +15,7 @@ import DiscordSupportPage from './pages/Support';
 import TeamPage from './pages/Team';
 import ProfilePage from './pages/Profile';
 import PremiumPage from './pages/Premium';
+import StatusPage from './pages/StatusPage';
 
 // Dashboard Sub-Pages
 import AntinukePage from './pages/dashboard/AntinukePage';
@@ -55,6 +56,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/docs" element={<Documentation />} />
+          <Route path="/status" element={<StatusPage />} />
           <Route path="/support" element={<DiscordSupportPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/profile" element={<ProfilePage />} />
