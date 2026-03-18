@@ -75,6 +75,16 @@ const ServerSelector: React.FC = () => {
     };
   }, []);
 
+  // Check if user is logged in
+  useEffect(() => {
+    const token = secureStorage.getItem('discord_token');
+    const user = secureStorage.getItem('discord_user') || secureStorage.getItem('user');
+    if (!token || !user) {
+      navigate('/dashboard/login');
+      return;
+    }
+  }, [navigate]);
+
   useEffect(() => {
     fetchGuilds();
   }, []);
@@ -391,7 +401,7 @@ const ServerSelector: React.FC = () => {
         }
       `}</style>
 
-      <div className="min-h-screen bg-[#030712] text-white relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--theme-bg)] text-[var(--theme-text)] relative overflow-hidden">
         {/* ✅ Animated Background with Parallax */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div
