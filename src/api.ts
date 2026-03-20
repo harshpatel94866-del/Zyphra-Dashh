@@ -12,5 +12,9 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+export const getStatusDetailed = async () => {
+  const response = await api.get('/status-detailed');
+  return response.data;
+};
 
 export default api;
