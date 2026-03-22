@@ -43,6 +43,7 @@ import AdminPremium from './pages/admin/AdminPremium';
 import AdminBlacklist from './pages/admin/AdminBlacklist';
 import AdminUserLookup from './pages/admin/AdminUserLookup';
 import AdminBotSettings from './pages/admin/AdminBotSettings';
+import AdminNoPrefix from './pages/admin/AdminNoPrefix';
 
 
 const App: React.FC = () => {
@@ -88,9 +89,11 @@ const App: React.FC = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/guilds" element={<AdminGuilds />} />
           <Route path="/admin/premium" element={<AdminPremium />} />
+          <Route path="/admin/noprefix" element={<AdminNoPrefix />} />
           <Route path="/admin/blacklist" element={<AdminBlacklist />} />
           <Route path="/admin/users" element={<AdminUserLookup />} />
           <Route path="/admin/bot-settings" element={<AdminBotSettings />} />
+
           
           {/* Legacy routes */}
           <Route path="/protection" element={<ProtectionPage />} />
