@@ -1,225 +1,315 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '../../api';
-import { Star, Loader2, Plus, Trash2, ShieldCheck } from 'lucide-react';
+import { Crown, Users, Server, Loader2, Search, Trash2, Plus, RefreshCw, Clock, Star, Zap } from 'lucide-react';
 
 interface PremiumUser {
     user_id: string;
+    tier: string;
+    expires_at: string | null;
+    autolyrics: boolean;
+    username: string | null;
+    avatar: string | null;
+}
+
+interface PremiumGuild {
     guild_id: string;
-    no_prefix: boolean;
-    expires_at: string;
+    tier: string;
+    expires_at: string | null;
+    name: string | null;
+    icon: string | null;
+    member_count: number;
 }
 
 const AdminPremium: React.FC = () => {
+    const [tab, setTab] = useState<'users' | 'guilds'>('users');
     const [users, setUsers] = useState<PremiumUser[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    
-    // Form state
-    const [userId, setUserId] = useState('');
-    const [guildId, setGuildId] = useState('');
-    const [noPrefix, setNoPrefix] = useState(false);
-    const [expiresAt, setExpiresAt] = useState('2099-12-31');
+    const [guilds, setGuilds] = useState<PremiumGuild[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(true);
+    const [loadingGuilds, setLoadingGuilds] = useState(true);
+    const [search, setSearch] = useState('');
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const fetchPremium = () => {
-        setLoading(true);
-        api.get('/admin/premium')
-            .then(res => setUsers(res.data))
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
+    // User form
+    const [newUserId, setNewUserId] = useState('');
+    const [newUserTier, setNewUserTier] = useState('basic');
+    const [newUserExpiry, setNewUserExpiry] = useState('');
+    const [newUserAutolyrics, setNewUserAutolyrics] = useState(false);
+    const [addingUser, setAddingUser] = useState(false);
+
+    // Guild form
+    const [newGuildId, setNewGuildId] = useState('');
+    const [newGuildTier, setNewGuildTier] = useState('basic');
+    const [newGuildExpiry, setNewGuildExpiry] = useState('');
+    const [addingGuild, setAddingGuild] = useState(false);
+
+    const fetchUsers = async (silent = false) => {
+        if (!silent) setLoadingUsers(true);
+        try {
+            const res = await api.get('/admin/premium');
+            setUsers(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { console.error(e); }
+        finally { setLoadingUsers(false); }
+    };
+
+    const fetchGuilds = async (silent = false) => {
+        if (!silent) setLoadingGuilds(true);
+        try {
+            const res = await api.get('/admin/premium/guilds');
+            setGuilds(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { console.error(e); }
+        finally { setLoadingGuilds(false); }
+    };
+
+    const fetchAll = async (silent = false) => {
+        await Promise.all([fetchUsers(silent), fetchGuilds(silent)]);
+        setLastUpdated(new Date());
     };
 
     useEffect(() => {
-        fetchPremium();
+        fetchAll();
+        intervalRef.current = setInterval(() => fetchAll(true), 30000);
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, []);
 
-    const handleAdd = async (e: React.FormEvent) => {
+    const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!userId) return;
-        setSubmitting(true);
+        if (!newUserId) return;
+        setAddingUser(true);
         try {
             await api.post('/admin/premium', {
-                user_id: userId,
-                guild_id: guildId,
-                no_prefix: noPrefix,
-                expires_at: expiresAt
+                user_id: newUserId,
+                tier: newUserTier,
+                expires_at: newUserExpiry || null,
+                autolyrics: newUserAutolyrics,
             });
-            setUserId('');
-            setGuildId('');
-            setNoPrefix(false);
-            setExpiresAt('2099-12-31');
-            fetchPremium();
-        } catch (err) {
-            console.error(err);
-            alert('Failed to add premium user');
-        } finally {
-            setSubmitting(false);
+            setNewUserId(''); setNewUserExpiry(''); setNewUserAutolyrics(false);
+            await fetchUsers();
+        } catch (e) { console.error(e); }
+        finally { setAddingUser(false); }
+    };
+
+    const handleRemoveUser = async (uid: string) => {
+        if (!window.confirm(`Remove premium from user ${uid}?`)) return;
+        try { await api.delete(`/admin/premium/${uid}`); await fetchUsers(); }
+        catch (e) { console.error(e); }
+    };
+
+    const handleAddGuild = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newGuildId) return;
+        setAddingGuild(true);
+        try {
+            await api.post('/admin/premium/guilds', {
+                guild_id: newGuildId,
+                tier: newGuildTier,
+                expires_at: newGuildExpiry || null,
+            });
+            setNewGuildId(''); setNewGuildExpiry('');
+            await fetchGuilds();
+        } catch (e) { console.error(e); }
+        finally { setAddingGuild(false); }
+    };
+
+    const handleRemoveGuild = async (gid: string) => {
+        if (!window.confirm(`Remove premium from guild ${gid}?`)) return;
+        try { await api.delete(`/admin/premium/guilds/${gid}`); await fetchGuilds(); }
+        catch (e) { console.error(e); }
+    };
+
+    const tierColor = (t: string) => {
+        switch (t?.toLowerCase()) {
+            case 'gold': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+            case 'silver': return 'bg-gray-400/20 text-gray-300 border-gray-400/30';
+            case 'bronze': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+            default: return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
         }
     };
 
-    const handleRemove = async (id: string) => {
-        if (!window.confirm('Remove premium for this user?')) return;
-        try {
-            await api.delete(`/admin/premium/${id}`);
-            setUsers(prev => prev.filter(u => u.user_id !== id));
-        } catch (err) {
-            console.error(err);
-        }
+    const formatExpiry = (exp: string | null) => {
+        if (!exp) return '♾️ Lifetime';
+        const d = new Date(exp);
+        const now = new Date();
+        if (d < now) return '⚠️ Expired';
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
+
+    const filteredUsers = users.filter(u =>
+        (u.username || '').toLowerCase().includes(search.toLowerCase()) ||
+        u.user_id.includes(search)
+    );
+
+    const filteredGuilds = guilds.filter(g =>
+        (g.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        g.guild_id.includes(search)
+    );
 
     return (
         <AdminLayout>
-            <div className="mb-8 pl-1">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-                    Premium & No Prefix
-                </h1>
-                <p className="text-sm text-gray-400 mt-1">Manage users with elevated bot privileges.</p>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                        💎 Premium Manager
+                    </h1>
+                    <p className="text-sm text-gray-400 mt-1">Manage premium users and guilds — reads from <code className="text-[11px] bg-white/5 px-1.5 py-0.5 rounded">db/premium.db</code></p>
+                </div>
+                {lastUpdated && (
+                    <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                        <span className="text-[10px] text-gray-400">Live • {lastUpdated.toLocaleTimeString()}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6">
+                <button onClick={() => setTab('users')} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all border ${tab === 'users' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-white/[0.03] text-gray-400 border-white/[0.06] hover:bg-white/[0.05]'}`}>
+                    <Users className="w-4 h-4" /> Users ({users.length})
+                </button>
+                <button onClick={() => setTab('guilds')} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all border ${tab === 'guilds' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-white/[0.03] text-gray-400 border-white/[0.06] hover:bg-white/[0.05]'}`}>
+                    <Server className="w-4 h-4" /> Guilds ({guilds.length})
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Form to add new premium user */}
+                {/* Add Form */}
                 <div className="lg:col-span-1">
-                    <div className="bg-[#0f1423]/80 backdrop-blur-sm border border-yellow-500/10 rounded-xl p-6 shadow-xl">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Plus className="w-5 h-5 text-yellow-400" />
-                            <h2 className="text-lg font-bold text-white">Grant Access</h2>
-                        </div>
-                        
-                        <form onSubmit={handleAdd} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">User ID *</label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    value={userId}
-                                    onChange={e => setUserId(e.target.value)}
-                                    placeholder="e.g. 10706190...824"
-                                    className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Guild ID (Optional)</label>
-                                <input 
-                                    type="text" 
-                                    value={guildId}
-                                    onChange={e => setGuildId(e.target.value)}
-                                    placeholder="e.g. 98765432..."
-                                    className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                                />
-                                <p className="text-[11px] text-gray-500 mt-1">Restrict premium to a specific server if needed.</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Expiry Date</label>
-                                <input 
-                                    type="date" 
-                                    value={expiresAt}
-                                    onChange={e => setExpiresAt(e.target.value)}
-                                    className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors [color-scheme:dark]"
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-3 pt-2">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        className="sr-only peer" 
-                                        checked={noPrefix}
-                                        onChange={e => setNoPrefix(e.target.checked)}
-                                    />
-                                    <div className="w-11 h-6 bg-[#0a0f1e] border border-white/[0.08] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-yellow-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                    {tab === 'users' ? (
+                        <form onSubmit={handleAddUser} className="bg-[#0f1423]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5 shadow-2xl">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4"><Plus className="w-4 h-4 text-yellow-400" /> Grant User Premium</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">User ID *</label>
+                                    <input type="text" value={newUserId} onChange={e => setNewUserId(e.target.value)} placeholder="e.g. 1070619082..." className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500/50" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">Tier</label>
+                                    <select value={newUserTier} onChange={e => setNewUserTier(e.target.value)} className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500/50">
+                                        <option value="basic">Basic</option>
+                                        <option value="silver">Silver</option>
+                                        <option value="gold">Gold</option>
+                                        <option value="bronze">Bronze</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">Expiry Date (empty = lifetime)</label>
+                                    <input type="date" value={newUserExpiry} onChange={e => setNewUserExpiry(e.target.value)} className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500/50" />
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={newUserAutolyrics} onChange={e => setNewUserAutolyrics(e.target.checked)} className="rounded" />
+                                    <span className="text-sm text-gray-300">Auto-Lyrics</span>
                                 </label>
-                                <span className="text-sm font-medium text-gray-300">Enable No Prefix (NP)</span>
+                                <button type="submit" disabled={addingUser || !newUserId} className="w-full bg-gradient-to-r from-yellow-500/20 to-amber-500/20 hover:from-yellow-500/30 hover:to-amber-500/30 text-yellow-400 border border-yellow-500/30 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {addingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crown className="w-4 h-4" />}
+                                    Grant Premium
+                                </button>
                             </div>
-
-                            <button 
-                                type="submit"
-                                disabled={submitting || !userId}
-                                className="w-full mt-6 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 border border-yellow-500/30 font-bold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                                Grant Access
-                            </button>
                         </form>
-                    </div>
+                    ) : (
+                        <form onSubmit={handleAddGuild} className="bg-[#0f1423]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5 shadow-2xl">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4"><Plus className="w-4 h-4 text-purple-400" /> Grant Guild Premium</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">Guild ID *</label>
+                                    <input type="text" value={newGuildId} onChange={e => setNewGuildId(e.target.value)} placeholder="e.g. 11234567890..." className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">Tier</label>
+                                    <select value={newGuildTier} onChange={e => setNewGuildTier(e.target.value)} className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50">
+                                        <option value="basic">Basic</option>
+                                        <option value="silver">Silver</option>
+                                        <option value="gold">Gold</option>
+                                        <option value="bronze">Bronze</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">Expiry Date (empty = lifetime)</label>
+                                    <input type="date" value={newGuildExpiry} onChange={e => setNewGuildExpiry(e.target.value)} className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50" />
+                                </div>
+                                <button type="submit" disabled={addingGuild || !newGuildId} className="w-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 hover:from-purple-500/30 hover:to-indigo-500/30 text-purple-400 border border-purple-500/30 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {addingGuild ? <Loader2 className="w-4 h-4 animate-spin" /> : <Server className="w-4 h-4" />}
+                                    Grant Guild Premium
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
 
-                {/* List of premium users */}
+                {/* List */}
                 <div className="lg:col-span-2">
-                    <div className="bg-[#0f1423]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl overflow-hidden shadow-2xl">
-                        <div className="p-4 border-b border-white/[0.06] bg-white/[0.01]">
-                            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                                <Star className="w-4 h-4 text-yellow-400" />
-                                Active Users
-                            </h2>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-white/[0.02] border-b border-white/[0.06] text-xs uppercase tracking-wider text-gray-400">
-                                        <th className="px-6 py-3 font-medium">User ID</th>
-                                        <th className="px-6 py-3 font-medium">Guild ID</th>
-                                        <th className="px-6 py-3 font-medium">Privileges</th>
-                                        <th className="px-6 py-3 font-medium">Expires</th>
-                                        <th className="px-6 py-3 font-medium text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/[0.04]">
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                                                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 opacity-50" />
-                                                Loading users...
-                                            </td>
-                                        </tr>
-                                    ) : users.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                                                No premium users found.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        users.map(u => (
-                                            <tr key={u.user_id} className="hover:bg-white/[0.02] transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <code className="bg-black/30 px-2 py-1 rounded text-gray-300 text-xs font-mono">
-                                                        {u.user_id}
-                                                    </code>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {u.guild_id ? (
-                                                        <code className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded">{u.guild_id}</code>
-                                                    ) : (
-                                                        <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">Global</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex gap-2">
-                                                        <span className="text-[10px] uppercase tracking-wider font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded">Premium</span>
-                                                        {u.no_prefix && (
-                                                            <span className="text-[10px] uppercase tracking-wider font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded">NP</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-xs text-gray-300">
-                                                    {u.expires_at === '2099-12-31' ? 'Lifetime' : u.expires_at}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button 
-                                                        onClick={() => handleRemove(u.user_id)}
-                                                        className="text-gray-500 hover:text-red-400 transition-colors p-1"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="relative mb-4">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${tab}...`} className="w-full bg-[#0a0f1e] border border-white/[0.08] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-500/50" />
                     </div>
+
+                    {tab === 'users' ? (
+                        <div className="bg-[#0f1423]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl overflow-hidden shadow-2xl">
+                            <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                                <Crown className="w-4 h-4 text-yellow-400" />
+                                <span className="text-sm font-bold text-white">Premium Users ({filteredUsers.length})</span>
+                            </div>
+                            {loadingUsers ? (
+                                <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-yellow-500 opacity-50" /></div>
+                            ) : filteredUsers.length === 0 ? (
+                                <p className="text-sm text-gray-500 text-center py-12">No premium users found.</p>
+                            ) : (
+                                <div className="divide-y divide-white/[0.04]">
+                                    {filteredUsers.map(u => (
+                                        <div key={u.user_id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02]">
+                                            {u.avatar ? <img src={u.avatar} alt="" className="w-9 h-9 rounded-full" /> :
+                                                <div className="w-9 h-9 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center justify-center font-bold text-xs">{(u.username || '?').charAt(0)}</div>}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-medium text-white truncate">{u.username || u.user_id}</span>
+                                                    <span className={`text-[10px] uppercase tracking-wider font-bold border px-1.5 py-0.5 rounded ${tierColor(u.tier)}`}>{u.tier}</span>
+                                                    {u.autolyrics && <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold px-1.5 py-0.5 rounded">🎵 LYRICS</span>}
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                                                    <code className="text-[10px]">{u.user_id}</code>
+                                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatExpiry(u.expires_at)}</span>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleRemoveUser(u.user_id)} className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-[#0f1423]/80 backdrop-blur-sm border border-white/[0.06] rounded-xl overflow-hidden shadow-2xl">
+                            <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                                <Server className="w-4 h-4 text-purple-400" />
+                                <span className="text-sm font-bold text-white">Premium Guilds ({filteredGuilds.length})</span>
+                            </div>
+                            {loadingGuilds ? (
+                                <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-500 opacity-50" /></div>
+                            ) : filteredGuilds.length === 0 ? (
+                                <p className="text-sm text-gray-500 text-center py-12">No premium guilds found.</p>
+                            ) : (
+                                <div className="divide-y divide-white/[0.04]">
+                                    {filteredGuilds.map(g => (
+                                        <div key={g.guild_id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02]">
+                                            {g.icon ? <img src={g.icon} alt="" className="w-9 h-9 rounded-full" /> :
+                                                <div className="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xs">{(g.name || '?').charAt(0)}</div>}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-medium text-white truncate">{g.name || g.guild_id}</span>
+                                                    <span className={`text-[10px] uppercase tracking-wider font-bold border px-1.5 py-0.5 rounded ${tierColor(g.tier)}`}>{g.tier}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                                                    <code className="text-[10px]">{g.guild_id}</code>
+                                                    <span>{g.member_count.toLocaleString()} members</span>
+                                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatExpiry(g.expires_at)}</span>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleRemoveGuild(g.guild_id)} className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </AdminLayout>
