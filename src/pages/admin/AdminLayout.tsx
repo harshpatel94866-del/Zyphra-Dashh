@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { secureStorage } from '../../utils/secureStorage';
 import { useTheme } from '../../context/ThemeContext';
-import { Shield, LayoutDashboard, Server, Star, ArrowLeft, ShieldBan, Users, Settings } from 'lucide-react';
+import { Shield, LayoutDashboard, Server, Star, ArrowLeft, ShieldBan, Users, Settings, Zap } from 'lucide-react';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -49,7 +49,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const navItems = [
         { path: '/admin', label: 'Overview', icon: LayoutDashboard },
         { path: '/admin/guilds', label: 'Guilds', icon: Server },
-        { path: '/admin/premium', label: 'Premium & NP', icon: Star },
+        { path: '/admin/premium', label: 'Premium', icon: Star },
+        { path: '/admin/noprefix', label: 'No Prefix', icon: Zap },
         { path: '/admin/blacklist', label: 'Blacklist', icon: ShieldBan },
         { path: '/admin/users', label: 'User Lookup', icon: Users },
         { path: '/admin/bot-settings', label: 'Bot Settings', icon: Settings },
